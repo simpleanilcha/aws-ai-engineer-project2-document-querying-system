@@ -2,19 +2,27 @@ import boto3
 from botocore.exceptions import ClientError
 import json
 
+KB_ID = "FDI1QB5MB4"
+MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
+REGION = 'us-east-1'
+
 # Initialize AWS Bedrock client
 bedrock = boto3.client(
     service_name='bedrock-runtime',
-    region_name='us-west-2'  # Replace with your AWS region
+    region_name=REGION  # Replace with your AWS region
 )
 
 # Initialize Bedrock Knowledge Base client
 bedrock_kb = boto3.client(
     service_name='bedrock-agent-runtime',
-    region_name='us-west-2'  # Replace with your AWS region
+    region_name=REGION  # Replace with your AWS region
 )
 
-def valid_prompt(prompt, model_id):
+def valid_prompt(prompt, model_id=MODEL_ID):
+    """
+    Prints out the detected category and returns True only for Category E.
+    (Will ONLY ANSWER with the Catergory letter (A, B, C, D, or E))
+    """
     try:
 
         messages = [
@@ -42,8 +50,12 @@ def valid_prompt(prompt, model_id):
             }
         ]
 
+        # Use the provided model_id if given; otherwise fall back to a sensible default
+        model_to_use = model_id or 'anthropic.claude-3-5-sonnet-20240620'
+
         response = bedrock.invoke_model(
-            modelId=model_id,
+            # modelId=model_id,
+            modelId=model_to_use,
             contentType='application/json',
             accept='application/json',
             body=json.dumps({
@@ -65,7 +77,11 @@ def valid_prompt(prompt, model_id):
         print(f"Error validating prompt: {e}")
         return False
 
-def query_knowledge_base(query, kb_id):
+def query_knowledge_base(query, kb_id=KB_ID):
+    """
+    KB info retrieval function.
+    Returns a list of retrievalResults.
+    """
     try:
         response = bedrock_kb.retrieve(
             knowledgeBaseId=kb_id,
@@ -79,11 +95,16 @@ def query_knowledge_base(query, kb_id):
             }
         )
         return response['retrievalResults']
+        # return response.get('retrievalResults', [])
     except ClientError as e:
         print(f"Error querying Knowledge Base: {e}")
         return []
 
-def generate_response(prompt, model_id, temperature, top_p):
+def generate_response(prompt, model_id=MODEL_ID, temperature=0.1, top_p=0.9):
+    """
+    Text generation function.
+    Temperature and Top_p updated for more flexibility. Can be set to "Static" number if needed.
+    """
     try:
 
         messages = [

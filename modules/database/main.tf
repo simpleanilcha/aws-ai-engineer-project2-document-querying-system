@@ -65,6 +65,9 @@ resource "aws_security_group" "aurora_sg" {
 resource "random_password" "master_password" {
   length  = 16
   special = true
+  # Exclude the characters forbidden by RDS: /, @, ", space
+  # Note: The backslashes are for escaping the quotes in HCL
+  override_special = "!#$%&()*+,-.:;<=>?[]^{}|~"
 }
 
 resource "aws_secretsmanager_secret" "aurora_secret" {
